@@ -1,0 +1,96 @@
+# Переменные окружения (environment) объявлены в .env файле.
+#
+version: "3.9"
+
+networks:
+  git_net:
+    external: false
+
+services:
+  gitflic:
+# Название контейнера
+    container_name: gitflic
+
+    # Директория с gitflic Dockerfile файлом.
+    build: 
+      context: ../
+      dockerfile: ./docker/gitflic/Dockerfile
+
+    # Монтирование директорий (слева обозначены пути на хост машине, справа - пути контейнера)
+    volumes:
+      - ${HOST_LOG_PATH}:${LOG_PATH}
+      - ${HOST_REPO_DIR}:${REPO_DIR}
+      - ${HOST_IMG_DIR}:${IMG_DIR}
+      - ${HOST_RELEASES_DIR}:${RELEASES_DIR}
+      - ${HOST_CICD_DIR}:${CICD_DIR}
+      - ${HOST_SSH_CERT}:${SSH_CERT_DIR}
+      - ${HOST_REG_PACK_DIR}:${REG_PACK_DIR}
+
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+      SSH_SERVER_PORT: ${SSH_SERVER_PORT}
+
+      POSTGRES_CONTAINER_NAME: ${POSTGRES_CONTAINER_NAME}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+
+      REPO_DIR: ${REPO_DIR}
+      IMG_DIR: ${IMG_DIR}
+      RELEASES_DIR: ${RELEASES_DIR}
+      SSH_CERT: ${SSH_CERT}
+      CICD_DIR: ${CICD_DIR}
+      LOG_NAME: ${LOG_NAME}
+      LOG_PATH: ${LOG_PATH}
+      REG_PACK_DIR: ${REG_PACK_DIR}
+
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      SENDER_NAME: ${SENDER_NAME}
+      SENDER_EMAIL: ${SENDER_EMAIL}
+
+      GITFLIC_BASE_URL: http://${GITFLIC_BASE_URL}:${SERVER_PORT}
+      GITFLIC_TRANSPORT_URL: http://${GITFLIC_TRANSPORT_URL}:${SERVER_PORT}
+
+    networks:
+      - git_net
+
+    # Настройка нужных портов
+    ports:
+      - "${HOST_PORT}:${SERVER_PORT}"
+      - "${HOST_SSH_PORT}:${SSH_SERVER_PORT}"
+    depends_on:
+      - redis
+      - postgres
+
+  postgres:
+     container_name: postgres
+    
+    # Директория с postgress Dockerfile файлом.
+     build: ./postgres/
+     environment:
+       POSTGRES_USER: ${POSTGRES_USER}
+       POSTGRES_PASSWORD: ${POSTGRES_PASS}
+       POSTGRES_DB: ${POSTGRES_DB}
+     networks:
+       - git_net
+
+    # Монтирование директорий
+     volumes:
+       - ${HOST_POSTGRES_VOLUME}:${SERVER_POSTGRES_VOLUME}
+
+  redis:
+    container_name: redis
+    image: redis:6.2-alpine
+    command: redis-server 
+    networks:
+      - git_net
+
+    # Монтирование директорий
+    volumes:
+      - ${HOST_REDIS_VOLUME}:${SERVER_REDIS_VOLUME}
